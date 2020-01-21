@@ -52,22 +52,30 @@ process metaphlan2 {
 	output:
 	
 	// e.g., CC40GACXX_8_TAGGCATG_CTCTCTAT.bowtie2.bz2 
-	file("${sample_name}.rel_ab_w_read_stats_ignore_unknown.txt") into metaphlan2_9_20_tabular_outputs_ignore_unknowns
-	file("${sample_name}.rel_ab_w_read_stats_use_unknown.txt") into metaphlan2_9_20_tabular_outputs_use_unknowns
-	file("${sample_name}.bowtie2.bz2") into metaphlan2_9_20_bowtie_outputs
-	file("${sample_name}.metaphlan2.log.txt") into logs
+	file("metaphlan_results/${sample_name}.rel_ab_w_read_stats_ignore_unknown.txt") into metaphlan2_9_20_tabular_outputs_ignore_unknowns
+	file("metaphlan_results/${sample_name}.rel_ab_w_read_stats_use_unknown.txt") into metaphlan2_9_20_tabular_outputs_use_unknowns
+	file("bowtie_outputs/${sample_name}.bowtie2.bz2") into metaphlan2_9_20_bowtie_outputs
+	file("metaphlan2_logs/${sample_name}.metaphlan2.log.txt") into logs
 	
 	publishDir params.output_folder
 	
 	script:
 	"""
-	uname > ${sample_name}.metaphlan2.log.txt
-	metaphlan2.py -v >> ${sample_name}.metaphlan2.log.txt
+	mkdir metaphlan2_logs
+	mkdir metaphlan_results
+
+	uname > metaphlan2_logs/${sample_name}.metaphlan2.log.txt
+	metaphlan2.py -v >> metaphlan2_logs/${sample_name}.metaphlan2.log.txt
+	
 	gunzip -c ${fastq2} > ${sample_name}.R1.fq
 	gunzip -c ${fastq2} > ${sample_name}.R2.fq
-	metaphlan2.py ${sample_name}.R1.fq,${sample_name}.R2.fq --input_type fastq --bowtie2out ${sample_name}.bowtie2.bz2 --nproc ${params.cpus_metaphlan2}
-	metaphlan2.py -t rel_ab_w_read_stats ${sample_name}.bowtie2.bz2 --input_type bowtie2out -o ${sample_name}.rel_ab_w_read_stats_ignore_unknown.txt --unknown_estimation
-	metaphlan2.py -t rel_ab_w_read_stats ${sample_name}.bowtie2.bz2 --input_type bowtie2out -o ${sample_name}.rel_ab_w_read_stats_use_unknown.txt 
+
+	mkdir bowtie_outputs
+
+	metaphlan2.py ${sample_name}.R1.fq,${sample_name}.R2.fq --input_type fastq --bowtie2out bowtie_outputs/${sample_name}.bowtie2.bz2 --nproc ${params.cpus_metaphlan2}
+	
+	metaphlan2.py -t rel_ab_w_read_stats bowtie_outputs/${sample_name}.bowtie2.bz2 --input_type bowtie2out -o metaphlan_results/${sample_name}.rel_ab_w_read_stats_ignore_unknown.txt --unknown_estimation
+	metaphlan2.py -t rel_ab_w_read_stats bowtie_outputs/${sample_name}.bowtie2.bz2 --input_type bowtie2out -o metaphlan_results/${sample_name}.rel_ab_w_read_stats_use_unknown.txt 
 	"""
 }
 
@@ -84,24 +92,35 @@ process merge_metaphlan_tables {
 	//file('*use_unknown.txt') from metaphlan2_9_20_tabular_outputs_use_unknowns.collect()
 
 	output:
-	file("merged_readcounts_table_ignore_unknown.txt") into final_outputs
-	file("merged_readcounts_table_use_unknown.txt") into final_outputs2
-	file("merged_rabundances_table_ignore_unknown.txt") into final_outputs3
-	file("merged_rabundances_table_use_unknown.txt") into final_outputs4
+	file("ignore_unknowns/merged_readcounts_table_ignore_unknown.txt") into final_outputs
+	file("use_unknowns/merged_readcounts_table_use_unknown.txt") into final_outputs2
+	file("ignore_unknowns/merged_rabundances_table_ignore_unknown.txt") into final_outputs3
+	file("use_unknowns/merged_rabundances_table_use_unknown.txt") into final_outputs4
+	file("ignore_unknowns/merged_coverage_table_ignore_unknown.txt") into final_output5
+	file("use_unknowns/merged_coverage_table_use_unknown.txt") into final_output6
 
 	publishDir params.output_folder
 	
 	// here we can pull a specific script. I had to do this because there was a bug in 2.9.20 version of MetaPhlAn and I wanted 
 	// to add custom functionality (--key estimated_number_of_reads_from_the_clade) rather than relative abundance
+	/// specific commit https://github.com/kmayerb/aws-batch-conda-py3/blob/ca57485adc0b60c7136b3cd7a702c1a7c7e16113/utilities/my_merge_metaphlan_tables.py
+	
+	// originally we pulled a wget in the script https://raw.githubusercontent.com/kmayerb/aws-batch-conda-py3/master/utilities/my_merge_metaphlan_tables.py
+	// however, this would be subject to change. This latest file was included in the docker container 
+	// so behavior is pinned to a specific container tag.
 	script:
 	"""
-	wget https://raw.githubusercontent.com/kmayerb/aws-batch-conda-py3/master/utilities/my_merge_metaphlan_tables.py
+	mkdir ignore_unknowns
+	mkdir use_unknowns
+
+	python /my_merge_metaphlan_tables.py --key estimated_number_of_reads_from_the_clade ${ign_file_list} > ignore_unknowns/merged_readcounts_table_ignore_unknown.txt
+	python /my_merge_metaphlan_tables.py --key estimated_number_of_reads_from_the_clade ${use_file_list} > use_unknowns/merged_readcounts_table_use_unknown.txt
 	
-	python my_merge_metaphlan_tables.py --key estimated_number_of_reads_from_the_clade ${ign_file_list} > merged_readcounts_table_ignore_unknown.txt
-	python my_merge_metaphlan_tables.py --key estimated_number_of_reads_from_the_clade ${use_file_list} > merged_readcounts_table_use_unknown.txt
+	python /my_merge_metaphlan_tables.py --key relative_abundance ${ign_file_list} > ignore_unknowns/merged_rabundances_table_ignore_unknown.txt
+	python /my_merge_metaphlan_tables.py --key relative_abundance ${ign_file_list} > use_unknowns/merged_rabundances_table_use_unknown.txt
 	
-	python my_merge_metaphlan_tables.py --key relative_abundance ${ign_file_list} > merged_rabundances_table_ignore_unknown.txt
-	python my_merge_metaphlan_tables.py --key relative_abundance ${ign_file_list} > merged_rabundances_table_use_unknown.txt
+	python /my_merge_metaphlan_tables.py --key coverage ${ign_file_list} > ignore_unknowns/merged_coverage_table_ignore_unknown.txt
+	python /my_merge_metaphlan_tables.py --key coverage ${ign_file_list} > use_unknowns/merged_coverage_table_use_unknown.txt
 	"""
 }
 
