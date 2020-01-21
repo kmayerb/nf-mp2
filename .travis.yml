@@ -12,7 +12,7 @@ install:
   - if [[ $TRAVIS_PYTHON_VERSION == '3.6' ]]; then travis_retry pip install -r requirements.txt; fi
 script:
   - echo "NOT READY TO ACTUALLY TEST ANYTHING EXCEPT DEPENDENCIES"
-  - echo 'export PATH="/home/travis/build/kmayerb/knead-docker:$PATH"' >> ~/.bashrc
+  - echo 'export PATH="/home/travis/build/kmayerb/nf-mp2:$PATH"' >> ~/.bashrc
   - source ~/.bashrc
   - nextflow -h
   - nextflow run main.nf -c nextflow.config --batchfile batchfile.txt -resume
