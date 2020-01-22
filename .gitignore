@@ -1,3 +1,4 @@
+report*
 nextflow-publishDir/*
 .DS_Store
 examples/.DS_Store
