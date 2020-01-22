@@ -5,8 +5,38 @@
 nf-mp2: nextflow pipeline for MetaPhlAn2 version 2.9.20
 
 
-### Config File
+### Dynamic Resource Allocation
 
+Jobs within a batch may have different resource requirements. The user may wish to specify resource requests based on typical file sizes within a batch, but with an error strategy in place to deal with larger than average files, which may cause its job to run out of memory. 
+
+This situation can be handled using conditional Nextflow [errorStrategy](https://www.nextflow.io/docs/latest/process.html) 'retry' and 'finish'. The appropriate strategy is based on the number of task attempts up to some number of 'maxRetries'.  That is, it is possible to 'retry' failed jobs with more memory requested on each subsequent attempt. **Just, take care to make sure to limit the number retries, so the job will eventually fail before trying to run on the largest availble EC2 instance.**
+
+For example, consider a portion of the Nextflow configuration file shown below. When process1 is initially run, Nextflow requests 2 cpus and 4 GB of memory, an allocation sufficient for most of the files in a batch. However, one exceptionally large input file causes a job failure due to insufficient allocated memory. Not to fear, the config tells Nextflow to try again. In this case, when the task.attempt is less than or equal to 3 (the specified maximum number of retries), the errorStrategy will be to 'retry' the task with stepwise larger memory allocation. After one job failure, 8GB (4*2 attemps) will be requested for the second attempt. If that attempt fails,  a third attempt with 12GB will be made. Crucially, after three failed attempts, the errorStrategy will be switched from 'retry' to 'finish' (Initiating an orderly pipeline shutdown when an error condition is raised, waiting the completion of other submitted job.) The same strategy can be implmented withLabel if the user wishes to apply the same error hanndling strategy to mulitple processes.
+
+
+```
+process {
+    withName: 'process1' {
+        cpus = 2
+        maxRetries = 3
+        errorStrategy = {task.attempt <= 3 ? 'retry' : 'finish'}
+        memory = {4.GB * task.attempt}
+        time = {4.h * task.attempt}
+    }
+    withName: 'process2' {
+        cpus = 1
+        memory = 2.GB
+        errorStrategy = 'finish'
+    }
+}
+```
+
+
+
+
+
+
+### Config File
 ```
 TOWERTOKEN=[USER-SUPPLIED]
 IAMTOKEN=[USER-SUPPLIED]
