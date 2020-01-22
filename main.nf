@@ -27,7 +27,7 @@ process metaphlan2 {
 	// set "${sample_name}.rel_ab_w_read_stats_ingore_unknown.txt") -->  metaphlan2_9_20_tabular_outputs_ignore_unknowns
 	// set "${sample_name}.rel_ab_w_read_stats_use_unknown.txt")    -->  into metaphlan2_9_20_tabular_outputs_use_unknowns
 	// set "${sample_name}.bowtie2.bz2")                            -->  metaphlan2_9_20_bowtie_outputs
-	// set "${sample_name}.metaphlan2.log.txt") into logs          -->  logs
+	// set "${sample_name}.metaphlan2.log.txt") into logs           -->  logs
 
 	// NOTES:
 	// We explicitly keep the intermediate bowtie outputs as well as results tables. 
@@ -67,7 +67,7 @@ process metaphlan2 {
 	uname > metaphlan2_logs/${sample_name}.metaphlan2.log.txt
 	metaphlan2.py -v >> metaphlan2_logs/${sample_name}.metaphlan2.log.txt
 	
-	gunzip -c ${fastq2} > ${sample_name}.R1.fq
+	gunzip -c ${fastq1} > ${sample_name}.R1.fq
 	gunzip -c ${fastq2} > ${sample_name}.R2.fq
 
 	mkdir bowtie_outputs
