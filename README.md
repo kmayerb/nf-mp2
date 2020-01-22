@@ -68,7 +68,6 @@ ml nextflow
 BATCHFILE=[USER-SUPPLIED]
 NFCONFIG=nextflow-aws-econ-optimal.config
 PROJECT=nf-mp2-test
-
 OUTPUT_FOLDER=[USER-SUPPLIED]
 WORK_DIR=[USER-SUPPLIED]
 
@@ -76,13 +75,14 @@ NXF_VER=19.10.0 nextflow \
     -c $NFCONFIG \
     run \
     kmayerb/nf-mp2 \
-        -r 0.0.1\
+        -r 0.0.2\
         --batchfile $BATCHFILE \
         --output_folder $OUTPUT_FOLDER \
-	    --cpus_metaphlan2 4 \
+        --cpus_metaphlan2 2 \
         -with-report $PROJECT.html \
         -work-dir $WORK_DIR \
-        -with-tower 
+        -with-tower
+
 ```
 
 
