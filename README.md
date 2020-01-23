@@ -4,6 +4,38 @@
 
 nf-mp2: nextflow pipeline for MetaPhlAn2 version 2.9.20
 
+### Workflow
+
+Nextflow 19.10.0 
+
+Job Tag: [angry_euler]
+
+Execution Folder: 2020-01-23-nf-mp2-all
+
+Processes paired-end fastq files with MetaPhlan2. Crucially we export coverage, relative abundance, and raw read counts. Analysis is done using and ignoring unmapped reads. 
+
+#### Outputs
+
+.
++-- bowtie_outputs (reusable)
+|   +-- CC40GACXX_8_AGGCAGAA_TATCCTCT.bowtie2.bz2 
+|   +-- 1279 Files
++-- ignore_unknowns (ignores unmmappable reads)
+|   +-- merged_rabundances_table_ignore_unknown.txt
+|   +-- merged_readcounts_table_ignore_unknown.txt
+|   +-- merged_coverage_table_ignore_unknown.txt
++-- use_unknowns (Includes unmappable reads)
+|   +-- merged_rabundances_table_use_unknown.txt
+|   +-- merged_readcounts_table_use_unknown.txt
+|   +-- merged_coverage_table_use_unknown.txt
++-- metaphlan2_logs (simple description of MetaPhlAn version)
++-- metaphlan_results (sample specific metaphlan outputs)
+|   +-- CC40GACXX_8_AGGCAGAA_TATCCTCT.rel_ab_w_read_stats_use_unknown.txt
+|   +-- CC40GACXX_8_AGGCAGAA_TATCCTCT.rel_ab_w_read_stats_ignore_unknown.txt
+|   +-- 2568 Files
++-- END
+
+
 
 ### Iterative Resource Allocation
 
