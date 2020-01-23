@@ -16,6 +16,7 @@ Processes paired-end fastq files with MetaPhlan2. Crucially we export coverage, 
 
 #### Outputs
 
+```
 .
 +-- bowtie_outputs (reusable)
 |   +-- CC40GACXX_8_AGGCAGAA_TATCCTCT.bowtie2.bz2 
@@ -34,7 +35,7 @@ Processes paired-end fastq files with MetaPhlan2. Crucially we export coverage, 
 |   +-- CC40GACXX_8_AGGCAGAA_TATCCTCT.rel_ab_w_read_stats_ignore_unknown.txt
 |   +-- 2568 Files
 +-- END
-
+```
 
 
 ### Iterative Resource Allocation
