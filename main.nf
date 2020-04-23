@@ -92,8 +92,6 @@ else
 
 		tag "Single Read .fq -> MetaPhlAn v.2.9.20 -> rel_ab_w_read_stats"
 
-		when: params.read_type == "SE" 	
-
 		container "quay.io/kmayerb/nf-mp2-test:0.0.1"
 
 		input:
