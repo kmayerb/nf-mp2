@@ -1,0 +1,3 @@
+name,fastq1,fastq2
+s100,examples/s100.R1.fq.fastq.gz
+dm50,examples/dm50.R1.fq.fastq.gz
