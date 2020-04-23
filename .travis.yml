@@ -14,6 +14,5 @@ script:
   - echo "NOT READY TO ACTUALLY TEST ANYTHING EXCEPT DEPENDENCIES"
   - echo 'export PATH="/home/travis/build/kmayerb/nf-mp2:$PATH"' >> ~/.bashrc
   - source ~/.bashrc
-  - nextflow -h
-  - nextflow run main.nf -c nextflow.config --batchfile batchfile.txt --paired true -resume
   - nextflow run main.nf -c nextflow.config --batchfile batchfileSE.txt --paired false -resume
+  - nextflow run main.nf -c nextflow.config --batchfile batchfile.txt --paired true -resume
