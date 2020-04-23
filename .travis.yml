@@ -15,4 +15,4 @@ script:
   - echo 'export PATH="/home/travis/build/kmayerb/nf-mp2:$PATH"' >> ~/.bashrc
   - source ~/.bashrc
   - nextflow -h
-  - nextflow run main.nf -c nextflow.config --batchfile batchfile.txt -resume
+  - nextflow run main.nf -c nextflow.config --batchfile batchfile.txt --read_type PE -resume
