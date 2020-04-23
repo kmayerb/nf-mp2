@@ -16,3 +16,4 @@ script:
   - source ~/.bashrc
   - nextflow -h
   - nextflow run main.nf -c nextflow.config --batchfile batchfile.txt --read_type PE -resume
+  - nextflow run main.nf -c nextflow.config --batchfile batchfileSE.txt --read_type SE -resume

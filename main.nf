@@ -11,114 +11,115 @@ Channel.from(file(params.batchfile))
          [sample.name, file(sample.fastq1), file(sample.fastq2)]}
          .set{ input_channel}
 
-if( params.read_type == 'PE' )
 
-	process metaphlan2 {
+process metaphlan2 {
 
-		tag "PE .fq -> MetaPhlAn v.2.9.20 -> rel_ab_w_read_stats"
+	tag "PE .fq -> MetaPhlAn v.2.9.20 -> rel_ab_w_read_stats"
 
-		// This process only is designed for that are Paired-End .gz fastq file pairs.
-		
-		// INPUTS:
+	// This process only is designed for that are Paired-End .gz fastq file pairs.
+	
+	// INPUTS:
 
-		// sample_name
-		// fastq1
-		// fastq2
+	// sample_name
+	// fastq1
+	// fastq2
 
-		// OUTPUTS:
-		
-		// set "${sample_name}.rel_ab_w_read_stats_ingore_unknown.txt") -->  metaphlan2_9_20_tabular_outputs_ignore_unknowns
-		// set "${sample_name}.rel_ab_w_read_stats_use_unknown.txt")    -->  into metaphlan2_9_20_tabular_outputs_use_unknowns
-		// set "${sample_name}.bowtie2.bz2")                            -->  metaphlan2_9_20_bowtie_outputs
-		// set "${sample_name}.metaphlan2.log.txt") into logs           -->  logs
+	// OUTPUTS:
+	
+	// set "${sample_name}.rel_ab_w_read_stats_ingore_unknown.txt") -->  metaphlan2_9_20_tabular_outputs_ignore_unknowns
+	// set "${sample_name}.rel_ab_w_read_stats_use_unknown.txt")    -->  into metaphlan2_9_20_tabular_outputs_use_unknowns
+	// set "${sample_name}.bowtie2.bz2")                            -->  metaphlan2_9_20_bowtie_outputs
+	// set "${sample_name}.metaphlan2.log.txt") into logs           -->  logs
 
-		// NOTES:
-		// We explicitly keep the intermediate bowtie outputs as well as results tables. 
-		// Once generated we can comeback and use these for marker level analysis
+	// NOTES:
+	// We explicitly keep the intermediate bowtie outputs as well as results tables. 
+	// Once generated we can comeback and use these for marker level analysis
 
-		
-		// local version for testing only
+	
+	// local version for testing only
+	// MetaPhlAn version 2.9.20 (14 Aug 2019)
+	// container "metaphlan2db:0.0.1"
+
+
+	// For testing on Amazon Batch:
+		// quay.io version for AWS Batch (it's 4.3 GB but 
+		// it contains the Database pre-compiled and bowtie indexed to save time)
 		// MetaPhlAn version 2.9.20 (14 Aug 2019)
-		// container "metaphlan2db:0.0.1"
+	
+	when: params.read_type == "PE" 	
+	
+	container "quay.io/kmayerb/nf-mp2-test:0.0.1"
 
+	input:
+	set sample_name, file(fastq1), file(fastq2) from input_channel
 
-		// For testing on Amazon Batch:
-			// quay.io version for AWS Batch (it's 4.3 GB but 
-			// it contains the Database pre-compiled and bowtie indexed to save time)
-			// MetaPhlAn version 2.9.20 (14 Aug 2019)
-		
-		container "quay.io/kmayerb/nf-mp2-test:0.0.1"
+	output:
+	
+	// e.g., CC40GACXX_8_TAGGCATG_CTCTCTAT.bowtie2.bz2 
+	file("metaphlan_results/${sample_name}.rel_ab_w_read_stats_ignore_unknown.txt") into metaphlan2_9_20_tabular_outputs_ignore_unknowns
+	file("metaphlan_results/${sample_name}.rel_ab_w_read_stats_use_unknown.txt") into metaphlan2_9_20_tabular_outputs_use_unknowns
+	file("bowtie_outputs/${sample_name}.bowtie2.bz2") into metaphlan2_9_20_bowtie_outputs
+	file("metaphlan2_logs/${sample_name}.metaphlan2.log.txt") into logs
+	
+	publishDir params.output_folder
+	
+	script:
+	"""
+	mkdir metaphlan2_logs
+	mkdir metaphlan_results
 
-		input:
-		set sample_name, file(fastq1), file(fastq2) from input_channel
+	uname > metaphlan2_logs/${sample_name}.metaphlan2.log.txt
+	metaphlan2.py -v >> metaphlan2_logs/${sample_name}.metaphlan2.log.txt
+	
+	gunzip -c ${fastq1} > ${sample_name}.R1.fq
+	gunzip -c ${fastq2} > ${sample_name}.R2.fq
 
-		output:
-		
-		// e.g., CC40GACXX_8_TAGGCATG_CTCTCTAT.bowtie2.bz2 
-		file("metaphlan_results/${sample_name}.rel_ab_w_read_stats_ignore_unknown.txt") into metaphlan2_9_20_tabular_outputs_ignore_unknowns
-		file("metaphlan_results/${sample_name}.rel_ab_w_read_stats_use_unknown.txt") into metaphlan2_9_20_tabular_outputs_use_unknowns
-		file("bowtie_outputs/${sample_name}.bowtie2.bz2") into metaphlan2_9_20_bowtie_outputs
-		file("metaphlan2_logs/${sample_name}.metaphlan2.log.txt") into logs
-		
-		publishDir params.output_folder
-		
-		script:
-		"""
-		mkdir metaphlan2_logs
-		mkdir metaphlan_results
+	mkdir bowtie_outputs
 
-		uname > metaphlan2_logs/${sample_name}.metaphlan2.log.txt
-		metaphlan2.py -v >> metaphlan2_logs/${sample_name}.metaphlan2.log.txt
-		
-		gunzip -c ${fastq1} > ${sample_name}.R1.fq
-		gunzip -c ${fastq2} > ${sample_name}.R2.fq
-
-		mkdir bowtie_outputs
-
-		metaphlan2.py ${sample_name}.R1.fq,${sample_name}.R2.fq --input_type fastq --bowtie2out bowtie_outputs/${sample_name}.bowtie2.bz2 --nproc ${params.cpus_metaphlan2}
-		
-		metaphlan2.py -t rel_ab_w_read_stats bowtie_outputs/${sample_name}.bowtie2.bz2 --input_type bowtie2out -o metaphlan_results/${sample_name}.rel_ab_w_read_stats_ignore_unknown.txt --unknown_estimation
-		metaphlan2.py -t rel_ab_w_read_stats bowtie_outputs/${sample_name}.bowtie2.bz2 --input_type bowtie2out -o metaphlan_results/${sample_name}.rel_ab_w_read_stats_use_unknown.txt 
-		"""
-else if (params.read_type == 'SE' )
-
-	process metaphlan2_single_read {
-
-		tag "Single Read .fq -> MetaPhlAn v.2.9.20 -> rel_ab_w_read_stats"
-
-		container "quay.io/kmayerb/nf-mp2-test:0.0.1"
-
-		input:
-		set sample_name, file(fastq1) from input_channel
-
-		output:
-		file("metaphlan_results/${sample_name}.rel_ab_w_read_stats_ignore_unknown.txt") into metaphlan2_9_20_tabular_outputs_ignore_unknowns
-		file("metaphlan_results/${sample_name}.rel_ab_w_read_stats_use_unknown.txt") into metaphlan2_9_20_tabular_outputs_use_unknowns
-		file("bowtie_outputs/${sample_name}.bowtie2.bz2") into metaphlan2_9_20_bowtie_outputs
-		file("metaphlan2_logs/${sample_name}.metaphlan2.log.txt") into logs
-		
-		publishDir params.output_folder
-		
-		script:
-		"""
-		mkdir metaphlan2_logs
-		mkdir metaphlan_results
-
-		uname > metaphlan2_logs/${sample_name}.metaphlan2.log.txt
-		metaphlan2.py -v >> metaphlan2_logs/${sample_name}.metaphlan2.log.txt
-		
-		gunzip -c ${fastq1} > ${sample_name}.R1.fq
-
-		mkdir bowtie_outputs
-
-		metaphlan2.py ${sample_name}.R1.fq --input_type fastq --bowtie2out bowtie_outputs/${sample_name}.bowtie2.bz2 --nproc ${params.cpus_metaphlan2}
-		
-		metaphlan2.py -t rel_ab_w_read_stats bowtie_outputs/${sample_name}.bowtie2.bz2 --input_type bowtie2out -o metaphlan_results/${sample_name}.rel_ab_w_read_stats_ignore_unknown.txt --unknown_estimation
-		metaphlan2.py -t rel_ab_w_read_stats bowtie_outputs/${sample_name}.bowtie2.bz2 --input_type bowtie2out -o metaphlan_results/${sample_name}.rel_ab_w_read_stats_use_unknown.txt 
-		"""
+	metaphlan2.py ${sample_name}.R1.fq,${sample_name}.R2.fq --input_type fastq --bowtie2out bowtie_outputs/${sample_name}.bowtie2.bz2 --nproc ${params.cpus_metaphlan2}
+	
+	metaphlan2.py -t rel_ab_w_read_stats bowtie_outputs/${sample_name}.bowtie2.bz2 --input_type bowtie2out -o metaphlan_results/${sample_name}.rel_ab_w_read_stats_ignore_unknown.txt --unknown_estimation
+	metaphlan2.py -t rel_ab_w_read_stats bowtie_outputs/${sample_name}.bowtie2.bz2 --input_type bowtie2out -o metaphlan_results/${sample_name}.rel_ab_w_read_stats_use_unknown.txt 
+	"""
 	}
- else
-    throw new IllegalArgumentException("Unknown read type $params.read_type must be 'PE' or 'SE'")
+
+process metaphlan2_single_read {
+
+	tag "Single Read .fq -> MetaPhlAn v.2.9.20 -> rel_ab_w_read_stats"
+
+	when: params.read_type == "SE" 	
+
+	container "quay.io/kmayerb/nf-mp2-test:0.0.1"
+
+	input:
+	set sample_name, file(fastq1) from input_channel
+
+	output:
+	file("metaphlan_results/${sample_name}.rel_ab_w_read_stats_ignore_unknown.txt") into metaphlan2_9_20_tabular_outputs_ignore_unknowns
+	file("metaphlan_results/${sample_name}.rel_ab_w_read_stats_use_unknown.txt") into metaphlan2_9_20_tabular_outputs_use_unknowns
+	file("bowtie_outputs/${sample_name}.bowtie2.bz2") into metaphlan2_9_20_bowtie_outputs
+	file("metaphlan2_logs/${sample_name}.metaphlan2.log.txt") into logs
+	
+	publishDir params.output_folder
+	
+	script:
+	"""
+	mkdir metaphlan2_logs
+	mkdir metaphlan_results
+
+	uname > metaphlan2_logs/${sample_name}.metaphlan2.log.txt
+	metaphlan2.py -v >> metaphlan2_logs/${sample_name}.metaphlan2.log.txt
+	
+	gunzip -c ${fastq1} > ${sample_name}.R1.fq
+
+	mkdir bowtie_outputs
+
+	metaphlan2.py ${sample_name}.R1.fq --input_type fastq --bowtie2out bowtie_outputs/${sample_name}.bowtie2.bz2 --nproc ${params.cpus_metaphlan2}
+	
+	metaphlan2.py -t rel_ab_w_read_stats bowtie_outputs/${sample_name}.bowtie2.bz2 --input_type bowtie2out -o metaphlan_results/${sample_name}.rel_ab_w_read_stats_ignore_unknown.txt --unknown_estimation
+	metaphlan2.py -t rel_ab_w_read_stats bowtie_outputs/${sample_name}.bowtie2.bz2 --input_type bowtie2out -o metaphlan_results/${sample_name}.rel_ab_w_read_stats_use_unknown.txt 
+	"""
+}
 
 
 process merge_metaphlan_tables {
